@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/*
+ * 垃圾侠原版配色（证据：垃圾侠资产/screens 截图采样）
+ * 深暖棕基底 + 珊瑚橙强调 + 草绿人数标签 + 金色 VIP
+ */
+@theme {
+  --color-ljx-bg: #4a3f35; /* 主背景 */
+  --color-ljx-bg2: #5c4f44; /* 标题栏 / 悬停 */
+  --color-ljx-surface: #3d342c; /* 面板 / 下拉 / 输入 */
+  --color-ljx-deep: #2a221c; /* 凹陷 / 状态栏 */
+  --color-ljx-accent: #e8664a; /* 珊瑚橙强调 */
+  --color-ljx-accent-deep: #c44a2a; /* 商城红边 */
+  --color-ljx-text: #f5f0eb; /* 主文字（微暖白） */
+  --color-ljx-text2: #b8a99a; /* 次文字 / 图标 */
+  --color-ljx-text3: #8a7d70; /* 占位 / 禁用 */
+  --color-ljx-border: #6b5d50; /* 分隔线 */
+  --color-ljx-green: #4a9b4a; /* 人数标签 */
+  --color-ljx-gold: #e8c44a; /* VIP 金 */
+  --color-ljx-cardborder: #c4a574; /* 卡片描边（金棕） */
+  --color-ljx-console: #1a1510; /* 控制台暖黑 */
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Microsoft YaHei", "Segoe UI", "PingFang SC", sans-serif;
+  background: #4a3f35;
+  color: #f5f0eb;
+  user-select: none;
+  font-size: 13px;
+}
+
+.selectable {
+  user-select: text;
+}
+
+/* 原版 Qt4 控件观感：直角、细边框 */
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+  border-radius: 2px;
+}
+
+select {
+  appearance: none;
+  background-image: none;
+}
+
+select option {
+  background: #3d342c;
+  color: #f5f0eb;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #3d342c;
+}
+::-webkit-scrollbar-thumb {
+  background: #6b5d50;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8a7d70;
+}
+
+/* 图标一律不允许被压缩。
+   项目里的图标都是 <img>，而 <img> 在 flex 容器里默认 flex-shrink: 1——
+   一旦同行元素变多（文字、分页、筛选框…），图标就会被挤成 0 宽而"消失"。
+   曾因此误判为"图标资源丢失"（标题栏 logo、大厅右上角的声音开关都踩过）。 */
+img {
+  flex-shrink: 0;
+}

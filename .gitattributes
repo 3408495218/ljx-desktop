@@ -1,0 +1,13 @@
+# 换行符统一交给 git 管理：仓库内存 LF，检出时按平台习惯转换
+* text=auto
+
+# 二进制文件：禁止任何文本转换，避免文件损坏
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.icns binary
+*.woff2 binary
+*.zip   binary
+*.jar   binary
