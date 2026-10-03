@@ -75,6 +75,28 @@ VITE_DEFAULT_SERVER_ADDRESS=123.108.110.52:49858 npm run tauri build
 
 用户装完即可直接连上，也可随时在设置里改。
 
+### 改应用图标
+
+图标源是仓库根目录的 `app-icon.png`（由 `ljx-assets/00161fd0.png` 用最近邻放大而来）。
+换图标后要两步：
+
+```bash
+npx tauri icon app-icon.png        # 1. 重新生成 src-tauri/icons/ 全套尺寸
+cargo clean -p lajixia-desktop     # 2. ！必须强制重跑构建脚本，见下
+npm run tauri build
+```
+
+> **第 2 步不能省，否则图标改了也不生效。**
+> `tauri-build` 用 `WindowsResource::compile()` 把 `.ico` 编进 exe，但**没有为图标文件发出
+> `cargo:rerun-if-changed`**（它只对 `tauri.conf.json`、capabilities、bundle resources 发了）。
+> 于是改了图标、构建脚本却不会重跑，链接进去的仍是上一次编译的 `resource.lib`，
+> 表现是「图标换了、exe 里还是旧图标」，且没有任何报错。
+> 判定方法：比对 `src-tauri/target/release/build/lajixia-desktop-*/out/resource.lib`
+> 与 `src-tauri/icons/icon.ico` 的修改时间，前者更早就说明没重跑。
+>
+> 安装包（NSIS）自身的图标另由 `bundle.windows.nsis.installerIcon` / `uninstallerIcon`
+> 指定，不设的话是 NSIS 默认的下载箭头图标 —— 与 app 图标不是同一个设置项。
+
 ## 目录结构
 
 ```
@@ -107,7 +129,13 @@ src-tauri/src/
 
 UI 对齐原版 2.0.10（Qt4）视觉：深暖棕基底（#4a3f35 / #5c4f44 / #3d342c / #2a221c）+ 珊瑚橙强调（#e8664a）+ 草绿人数标签（#4a9b4a）+ 金色 VIP（#e8c44a）+ 金棕卡片描边（#c4a574），无边框自定义标题栏。
 
-`src/assets/icons/`（28 个）与 `src/assets/shop/`（7 个）中的图标图片**打包在本仓库内**，出处为原版「垃圾侠」客户端拆包，按语义重命名后使用：房子 logo、网格 / 星星 / 脚印三视图、放大镜、刷新、翻页三角、「开 / 关」汉字开关、草方块封面（同时用作应用图标）、VIP 徽章、拼图、齿轮、锁、置顶卡、铁块 / 金块 / 钻石 VIP 徽章与房间边框、「快速注册，现在就玩」横幅、「加入 QQ 群」横幅等。
+`src/assets/icons/`（28 个）与 `src/assets/shop/`（7 个）中的图标图片**打包在本仓库内**，出处为原版「垃圾侠」客户端拆包，按语义重命名后使用：房子 logo、网格 / 星星 / 脚印三视图、放大镜、刷新、翻页三角、「开 / 关」汉字开关、草方块封面（用于房间封面等占位）、VIP 徽章、拼图、齿轮、锁、置顶卡、铁块 / 金块 / 钻石 VIP 徽章与房间边框、「快速注册，现在就玩」横幅、「加入 QQ 群」横幅等。
+
+应用图标（任务栏 / 安装包 / exe）使用其中的**房子 logo**（`ljx-assets/00161fd0.png`）：
+该图原生仅 48x48，用**最近邻**放大到 1024x1024 作为图标源（`app-icon.png`），
+再由 `npx tauri icon app-icon.png` 生成 `src-tauri/icons/` 全套尺寸。
+选最近邻而非 Lanczos，是为了保持像素画的硬边缘与 62 色调色板——用平滑插值会把
+背景的棋盘格纹理糊成渐变，且引入大量过渡色。
 
 > 这些图片的版权归属原软件作者。本项目仅作界面还原用途；若要商用或再分发，请先确认授权，或替换为自绘 / 开源图标集。
 

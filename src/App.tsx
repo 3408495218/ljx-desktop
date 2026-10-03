@@ -15,7 +15,7 @@ import type { ServerPhase } from "@/shared/types";
 import houseLogo from "@/assets/icons/house-logo.png";
 import downArrow from "@/assets/icons/down-arrow.png";
 import gearIcon from "@/assets/icons/gear.png";
-import vipBadge from "@/assets/icons/vip.png";
+import { vipBadgeIcon } from "@/shared/shopIcons";
 import { AccountDialog } from "@/features/account/AccountDialog";
 import { SettingsDialog } from "@/features/settings/SettingsDialog";
 import { MallDialog } from "@/features/mall/MallDialog";
@@ -240,6 +240,10 @@ export default function App() {
     setManageRoomId(roomId);
   }
 
+  // 顶栏 VIP 徽章按档位取图：VIP3 是钻石档。
+  // 此前这里写死了一张图（=金块），所以不管什么档位都显示金块。
+  const vipBadgeSrc = account ? vipBadgeIcon(account.vip) : null;
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* 标题栏：房子 logo + 标题 | 商城 + 账号 + 窗口控制 */}
@@ -273,7 +277,9 @@ export default function App() {
             >
               {account.vip !== null && (
                 <span className="flex items-center gap-[3px] bg-ljx-deep px-1.5 py-[2px] text-[12px] text-ljx-gold">
-                  <img src={vipBadge} alt="" className="h-4 w-4" draggable={false} />
+                  {vipBadgeSrc && (
+                    <img src={vipBadgeSrc} alt="" className="h-4 w-4" draggable={false} />
+                  )}
                   VIP{account.vip}
                 </span>
               )}

@@ -31,3 +31,26 @@ export function shopIcon(key: string | null | undefined): string | null {
   if (!key) return null;
   return SHOP_ICONS[key] ?? null;
 }
+
+/**
+ * VIP 档位 → 徽章资源键。
+ *
+ * 档位与图标由后端固定对应（`V15__asset_keys.sql` 写入 vip_plan.icon_url）：
+ *   1 铁块 / 2 金块 / 3 钻石。
+ * 顶栏徽章在**启动时就要渲染**（不能等商城接口回来），所以这里按档位直接查表，
+ * 与 MallDialog 用 `plan.iconUrl` 渲染的是同一批图。
+ */
+const VIP_BADGE_KEYS: Record<number, string> = {
+  1: "vip-iron",
+  2: "vip-gold",
+  3: "vip-diamond",
+};
+
+/**
+ * 按 VIP 档位取徽章图。
+ * <p>普通用户（0 / null）或未登记的档位返回 null，调用方据此不渲染图标而不是显示裂图。
+ */
+export function vipBadgeIcon(level: number | null | undefined): string | null {
+  if (!level) return null;
+  return shopIcon(VIP_BADGE_KEYS[level]);
+}
