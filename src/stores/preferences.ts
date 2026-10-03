@@ -2,7 +2,21 @@ import { create } from "zustand";
 import { load } from "@tauri-apps/plugin-store";
 import type { ServerStartConfig } from "@/shared/types";
 
-export const DEFAULT_SERVER_ADDRESS = "127.0.0.1";
+/**
+ * 平台后端默认地址。
+ *
+ * 默认 `127.0.0.1`（本地开发）。打包发行版时可用构建期环境变量覆盖，
+ * 让安装包开箱即连到自建服务器，而不必把具体 IP 写进源码仓库：
+ *
+ *   VITE_DEFAULT_SERVER_ADDRESS=123.108.110.52:49858 npm run tauri build
+ *
+ * 取值形态与「设置 → 服务器地址」输入一致，支持 `host`、`host:port`、完整 URL：
+ *   · 只给 host            → 自动补 :8080
+ *   · host:port            → 原样使用端口
+ *   · http(s)://…          → 原样使用
+ */
+export const DEFAULT_SERVER_ADDRESS =
+  (import.meta.env.VITE_DEFAULT_SERVER_ADDRESS as string | undefined)?.trim() || "127.0.0.1";
 
 /** 服务端启动配置默认值；持久化后重启仍能定位房间工作目录 */
 export const DEFAULT_SERVER_CONFIG: ServerStartConfig = {

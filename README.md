@@ -52,6 +52,29 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local   # 落盘，重启不丢�
 npm run tauri build   # 产出 NSIS 安装包
 ```
 
+### 指定安装包的默认服务器地址
+
+默认连 `127.0.0.1`（本地开发）。打包自建服务器专用的安装包时用构建期环境变量覆盖，
+这样具体地址不必写进源码仓库：
+
+```bash
+# Windows (PowerShell)
+$env:VITE_DEFAULT_SERVER_ADDRESS="123.108.110.52:49858"; npm run tauri build
+
+# Git Bash / Linux / macOS
+VITE_DEFAULT_SERVER_ADDRESS=123.108.110.52:49858 npm run tauri build
+```
+
+取值形态与「设置 → 服务器地址」输入框一致（见 `shared/serverConfig.ts`）：
+
+| 写法 | 解析结果 |
+|---|---|
+| `123.108.110.52` | `http://123.108.110.52:8080`（自动补默认端口） |
+| `123.108.110.52:49858` | `http://123.108.110.52:49858` |
+| `https://api.example.com` | 原样使用 |
+
+用户装完即可直接连上，也可随时在设置里改。
+
 ## 目录结构
 
 ```
