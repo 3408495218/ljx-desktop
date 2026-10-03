@@ -46,6 +46,14 @@ export function AccountDialog({ open, onClose }: AccountDialogProps) {
 
   if (!open) return null;
 
+  /**
+   * 是否显示登录/注册表单。
+   * <p>只有「还没有账号」或「**访客**主动要求升级为正式账号」时才显示。
+   * 多一条 `account.anonymous` 判断是**兜底**：登录成功后账号立刻变成非访客，
+   * 即使 showAuthForm 因某种原因没被复位，也不会再卡在表单上。
+   */
+  const showAuthFormNow = !account || (showAuthForm && account.anonymous);
+
   async function submit() {
     setError(null);
     if (!username.trim()) return setError("请输入账户");
@@ -57,6 +65,13 @@ export function AccountDialog({ open, onClose }: AccountDialogProps) {
       else await register(username.trim(), password);
       setPassword("");
       setRepeat("");
+      // 登录/注册成功后必须收尾，否则弹窗会一直停在登录表单上：
+      //   访客身份下账号恒非空，登录入口只能从「升级为正式账号」进入，
+      //   那个入口会把 showAuthForm 置 true；而表单渲染条件是
+      //   `!account || showAuthForm`。不复位就一直显示表单 ——
+      //   现象是「右上角已经显示新账号，弹窗里却仍是登录框，且不消失」。
+      setShowAuthForm(false);
+      onClose();
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -70,7 +85,7 @@ export function AccountDialog({ open, onClose }: AccountDialogProps) {
         className="w-[22rem] border border-ljx-border bg-ljx-surface p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {account && !showAuthForm ? (
+        {!showAuthFormNow ? (
           <AccountPanel
             onLogout={() => void logout()}
             onUpgrade={() => {

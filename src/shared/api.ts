@@ -395,20 +395,42 @@ export async function restoreSession(): Promise<boolean> {
   return true;
 }
 
+/**
+ * JSON 接口超时。
+ *
+ * 取值刻意**宽松**，因为服务端可能很慢：
+ *   · 登录要走 BCrypt 校验，在 CPU 被宿主超卖的机器上可能要几秒；
+ *   · 首次请求还可能触发类加载、连接池初始化。
+ * 但也不能无限等 —— 目标地址不可达又不回 RST 时，fetch 会挂好几分钟，
+ * 界面就一直停在「处理中…」，用户只会以为软件卡死了。
+ *
+ * 注意：**只作用于 JSON 接口**。客户端压缩包上传走独立的 uploadRequest，
+ * 动辄几十 MB，不能套用这个超时。
+ */
+const REQUEST_TIMEOUT_MS = 60_000;
+
 async function rawRequest<T>(method: string, path: string, body?: unknown): Promise<Envelope<T>> {
   const headers: Record<string, string> = {};
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let res: Response;
   try {
     res = await fetch(`${currentApiBaseUrl()}${path}`, {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal,
     });
   } catch {
-    throw new ApiError(NETWORK_ERROR, "无法连接云服务器，请检查设置中的服务器地址");
+    // 超时与真正的连接失败要分开提示，否则「服务器慢」会被误报成「地址填错」
+    throw controller.signal.aborted
+      ? new ApiError(NETWORK_ERROR, "服务器响应超时，请稍后重试或检查网络")
+      : new ApiError(NETWORK_ERROR, "无法连接云服务器，请检查设置中的服务器地址");
+  } finally {
+    clearTimeout(timer);
   }
 
   try {
