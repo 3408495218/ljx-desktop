@@ -1,6 +1,6 @@
 export const PAGE_SIZE = 18;
 
-export const APP_VERSION = "0.1.0";
+export const APP_VERSION = "0.1.1";
 
 export const OFFICIAL_QQ_GROUP = "121165105";
 

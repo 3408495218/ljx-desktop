@@ -1,6 +1,6 @@
 [package]
 name = "lajixia-desktop"
-version = "0.1.0"
+version = "0.1.1"
 description = "我的世界垃圾侠重建版桌面客户端"
 edition = "2021"
 
