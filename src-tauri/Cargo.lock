@@ -2032,7 +2032,7 @@ dependencies = [
 
 [[package]]
 name = "lajixia-desktop"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "crust_core",
  "reqwest",
