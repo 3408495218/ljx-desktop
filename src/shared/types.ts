@@ -20,6 +20,17 @@ export interface RoomCardData {
   cover: string | null;
 }
 
+/**
+ * 「我的游戏」当前管理对象。
+ *
+ * - `room`  —— 平台上的房间：详情、心跳、内容同步都要 roomId（依赖后端）
+ * - `local` —— 本机实例：离线开服用，**不注册到大厅、没有 roomId**
+ *
+ * 用带标签的联合类型，而不是 `number | null` 再拿 -1 之类的哨兵值表示"本地"——
+ * 否则每个调用点都得先猜"这个数字是房间还是特殊值"，很容易漏判。
+ */
+export type ManageTarget = { kind: "room"; id: number } | { kind: "local" };
+
 export type LobbyView = "all" | "favorite" | "history";
 
 export interface LobbyFilters {

@@ -10,6 +10,7 @@ import {
   restoreSession,
   setSession,
   type AccountPayload,
+  isNetworkError,
 } from "@/shared/api";
 import { usePreferencesStore } from "@/stores/preferences";
 import type { AccountInfo } from "@/shared/types";
@@ -124,8 +125,12 @@ export const useAccountStore = create<AccountState>((set) => ({
         try {
           set(applyAccount(await api.me()));
           return;
-        } catch {
-          clearSession();
+        } catch (e) {
+          // **只有令牌确实失效才清会话**。
+          // 之前这里无条件 clearSession()，而它连磁盘上的令牌一起清 ——
+          // 后果是"服务器临时不可达"会永久登出用户：下次联网还得重新输密码，
+          // 「记住密码」等于白设（本轮离线测试时实际踩到，正式账号令牌被清掉）。
+          if (!isNetworkError(e)) clearSession();
         }
       } else {
         // 未勾「记住密码」：丢弃上次遗留的正式令牌（访客令牌不受影响）

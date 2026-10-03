@@ -11,7 +11,7 @@ import { useRoomPresence } from "@/shared/useRoomPresence";
 import { playJoinChime } from "@/shared/chime";
 import { connectLobbySocket } from "@/shared/lobbySocket";
 import { useLobbyStore } from "@/stores/lobby";
-import type { ServerPhase } from "@/shared/types";
+import type { ManageTarget, ServerPhase } from "@/shared/types";
 import houseLogo from "@/assets/icons/house-logo.png";
 import downArrow from "@/assets/icons/down-arrow.png";
 import gearIcon from "@/assets/icons/gear.png";
@@ -64,7 +64,9 @@ export default function App() {
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mallOpen, setMallOpen] = useState(false);
-  const [manageRoomId, setManageRoomId] = useState<number | null>(null);
+  // 「我的游戏」的管理对象：平台房间 / 本机实例（离线开服）。
+  // 用带标签的联合类型而不是 `number | null` + 哨兵值，调用点就不必猜语义。
+  const [manageTarget, setManageTarget] = useState<ManageTarget | null>(null);
   // 持久化「我在哪个房间」：刷新页面、HMR 热更新都不该把我踢出房间——
   // 否则每次改代码/刷新都会 DELETE /presence，人数就归零了（本轮踩过）
   // 公告轮播（底部状态栏右侧）：无公告时回退显示官方 QQ 群文案
@@ -97,8 +99,8 @@ export default function App() {
   // 供推送回调读取最新的「我的房间」，避免为它重建 WebSocket 连接
   const manageRoomRef = useRef<number | null>(null);
   useEffect(() => {
-    manageRoomRef.current = manageRoomId;
-  }, [manageRoomId]);
+    manageRoomRef.current = manageTarget?.kind === "room" ? manageTarget.id : null;
+  }, [manageTarget]);
 
   // 大厅推送：人数 / 在线状态由后端在事务提交后推送到 /topic/lobby（毫秒级），
   // 不必等列表轮询。连接失败、断网或后端未升级时，LobbyPage 的轮询仍是兜底来源。
@@ -187,16 +189,23 @@ export default function App() {
   // 登录后拉「我的游戏」：名下已有房间则页签自动切到「我的游戏」并进入管理页
   useEffect(() => {
     if (accountId === null) {
-      setManageRoomId(null);
+      setManageTarget((prev) => (prev?.kind === "local" ? prev : null));
       return;
     }
     let cancelled = false;
+    // 用更新函数读旧值，避免再加一个 ref。
+    // **本机实例是用户显式选择的**：后端恰好连上、拿到访客身份时不能把它顶掉，
+    // 否则「离线开服中途后端恢复」会把用户直接踢出控制台。
+    const keepLocal = (prev: ManageTarget | null) => (prev?.kind === "local" ? prev : undefined);
     void (async () => {
       try {
         const rooms = await api.myRooms();
-        if (!cancelled) setManageRoomId(rooms.length > 0 ? rooms[0].id : null);
+        if (cancelled) return;
+        setManageTarget(
+          (prev) => keepLocal(prev) ?? (rooms.length > 0 ? { kind: "room", id: rooms[0].id } : null),
+        );
       } catch {
-        if (!cancelled) setManageRoomId(null);
+        if (!cancelled) setManageTarget((prev) => keepLocal(prev) ?? null);
       }
     })();
     return () => {
@@ -207,7 +216,12 @@ export default function App() {
   // 房间心跳必须在应用级：挂在「我的游戏」页里的话，房主一切到大厅 / 当前加入，
   // 上报就停了——房间仍显示「在线」（90 秒内不判离线），但玩家进出根本传不到平台，
   // 表现就是「人数永远是 0」。这里与当前页签无关，只要服务端在跑就持续上报。
-  useRoomHeartbeat(manageRoomId, phase === "running" || phase === "starting");
+  // 只有平台房间需要心跳（维持"在线"）。本机实例没有房间可上报，
+  // 传 null 即可 —— 里面 `roomId !== null` 已是总开关。
+  useRoomHeartbeat(
+    manageTarget?.kind === "room" ? manageTarget.id : null,
+    phase === "running" || phase === "starting",
+  );
 
   // 「我在哪个房间」由 selectedRoomId 这个**会话状态**决定，而不是由某个页面是否挂载决定。
   // 之前把它挂在「当前加入」页里，结果切到大厅看卡片时 JoinPage 卸载 → 立刻 DELETE /presence
@@ -229,7 +243,7 @@ export default function App() {
     }
   }, [selectedRoomId]);
 
-  const createLabel = manageRoomId === null ? "创建游戏" : "我的游戏";
+  const createLabel = manageTarget === null ? "创建游戏" : "我的游戏";
 
   function openRoom(roomId: number) {
     setSelectedRoomId(roomId);
@@ -237,7 +251,12 @@ export default function App() {
   }
 
   function created(roomId: number) {
-    setManageRoomId(roomId);
+    setManageTarget({ kind: "room", id: roomId });
+  }
+
+  /** 「本机开服」：不建房间、不连后端，直接进控制台（离线也能开服） */
+  function startLocal() {
+    setManageTarget({ kind: "local" });
   }
 
   // 顶栏 VIP 徽章按档位取图：VIP3 是钻石档。
@@ -328,10 +347,15 @@ export default function App() {
       <main className="min-h-0 flex-1 overflow-y-auto">
         {tab === "lobby" && <LobbyPage onOpenRoom={openRoom} />}
         {tab === "create" &&
-          (manageRoomId === null ? (
-            <CreatePage onCreated={created} onNeedAccount={() => setAccountOpen(true)} />
+          (manageTarget === null ? (
+            <CreatePage
+              onCreated={created}
+              onStartLocal={startLocal}
+              onNeedAccount={() => setAccountOpen(true)}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
           ) : (
-            <RoomManagePage roomId={manageRoomId} />
+            <RoomManagePage target={manageTarget} />
           ))}
         {tab === "join" && (
           <JoinPage
@@ -362,7 +386,7 @@ export default function App() {
         open={mallOpen}
         onClose={() => setMallOpen(false)}
         onNeedAccount={() => setAccountOpen(true)}
-          manageRoomId={manageRoomId}
+          manageRoomId={manageTarget?.kind === "room" ? manageTarget.id : null}
       />
     </div>
   );

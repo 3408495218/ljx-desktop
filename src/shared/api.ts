@@ -41,6 +41,16 @@ function isSessionInvalid(code: number): boolean {
 /** 网络层失败（未拿到合法响应体）时的本地错误码 */
 const NETWORK_ERROR = -1;
 
+/**
+ * 是否属于「连不上服务器」这类失败（区别于「令牌确实失效」）。
+ *
+ * 用途是区分**该不该清会话**：网络不可达时清掉持久化令牌，
+ * 等于用户明明是"服务器暂时挂了"，下次联网却要重新登录 —— 记住密码白设。
+ */
+export function isNetworkError(error: unknown): boolean {
+  return error instanceof ApiError && error.code === NETWORK_ERROR;
+}
+
 export interface SessionTokens {
   accessToken: string;
   refreshToken: string;
